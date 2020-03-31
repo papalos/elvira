@@ -1,8 +1,9 @@
 import os
 import csv
-import doctest
 import docx
+import datetime
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Mm
 
 
 class GradeSheet():
@@ -38,15 +39,17 @@ class GradeSheet():
 
         with open(self._pathFileCSV, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=';')
-            for row in reader:
-                if row[18] == '1':
-                    if dict_person.get(row[12]):
-                        if dict_person.get(row[12]).get(row[11]):
-                            dict_person[row[12]][row[11]] += 1
+            person_inform = [[i[11], f'{i[8]} {i[9]} {i[10]}', i[16], i[17]] for i in reader]
+            # print(person_inform)
+            for row in person_inform:
+                if row[3] == '1':
+                    if dict_person.get(row[0]):
+                        if dict_person.get(row[0]).get(row[1]):
+                            dict_person[row[0]][row[1]][0] += 1
                         else:
-                            dict_person[row[12]][row[11]] = 1
+                            dict_person[row[0]][row[1]] = [1, row[2]]
                     else:
-                        dict_person[row[12]] = {row[11]: 1}
+                        dict_person[row[0]] = {row[1]: [1, row[2]]}
 
         return dict_person
 
@@ -57,8 +60,28 @@ class GradeSheet():
     def createDocs(self, dict_person):
 
         for faculty in dict_person:
+
+            # формируем список с именами волонтеров
+            sort_person_list = [i for i in dict_person[faculty]]
+            # сортируем его
+            sort_person_list.sort()
+
+            # на основе отсортированного списка формируем новый словарь, с упорядоченным значением имен
+            sort_dict = {}
+            for name in sort_person_list:
+                sort_dict[name] = dict_person[faculty][name]
+
             # Создаем документ
             doc = docx.Document()
+
+            # Настраиваем отступы
+            section = doc.sections[0]
+            # section.page_height = Mm(297)
+            # section.page_width = Mm(210)
+            section.left_margin = Mm(20)
+            section.right_margin = Mm(15)
+            section.top_margin = Mm(20)
+            section.bottom_margin = Mm(20)
 
             # Заголовок
             doc.add_heading('ОЦЕНОЧНАЯ ВЕДОМОСТЬ ПО ПРОЕКТУ', 1).alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -102,17 +125,19 @@ class GradeSheet():
             tableTwo.style = 'Table Grid'
             # заполняем заголовки для страницы
             tableTwo.cell(0, 0).text = 'ФИО'
-            tableTwo.cell(0, 1).text = 'группа'
+            tableTwo.cell(0, 1).text = 'Курс'
             tableTwo.cell(0, 2).text = 'Оценка по 10-балльной шкале'
             tableTwo.cell(0, 3).text = 'Количество ЗЕ за проект'
 
             # добавляем строки таблице и заполняем содержимым переданного словарая с волонтерами
-            for person in dict_person[faculty]:
+            for person in sort_dict:
+
                 r = tableTwo.add_row()
                 c = r.cells
                 c[0].text = person
+                c[1].text = sort_dict[person][1]
                 c[2].text = '10'
-                grade = dict_person[faculty][person]
+                grade = sort_dict[person][0]
                 if grade < 3:
                     value = '1'
                 elif grade == 3:
@@ -124,10 +149,30 @@ class GradeSheet():
             # задаем ширину столбцов, где 373224 количество EMU в одном сантиметре
             cells0 = tableTwo.columns[0].cells
             for i in cells0:
-                i.width = 373224 * 8
+                i.width = 373224 * 10
             cells1 = tableTwo.columns[1].cells
             for i in cells1:
-                i.width = 373224 * 2
+                i.width = 373224 * 4
+            # cells2 = tableTwo.columns[2].cells
+            # for i in cells2:
+            #     i.width = 373224 * 2
+            # cells3 = tableTwo.columns[3].cells
+            # for i in cells3:
+            #     i.width = 373224 * 2
+
+            doc.add_paragraph()
+            doc.add_paragraph()
+
+            tableThree = doc.add_table(rows=2, cols=2)
+            # Вставляем дату
+            d = datetime.date.today()
+            tableThree.cell(0, 0).add_paragraph(f'Дата заполнения {d.day}.{d.month}.{d.year}')
+            tableThree.cell(0, 1).add_paragraph('Протасевич Т.А.').alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            # tableThree.cell(1, 0).text = 'Оценка по 10-балльной шкале'
+            tableThree.cell(1, 1).text = ''
+            stamp = tableThree.cell(1, 1).paragraphs[0]
+            stamp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            stamp.add_run().add_picture('stamp1.jpg')
 
             # путь сохранения файла
             path_save = faculty.replace('"', '').replace(':', '')
@@ -137,10 +182,17 @@ class GradeSheet():
             # сохраняем созданный документ
             doc.save(a)
 
+    def createPDF(self, dict_person):
+        pass
+
+
 
 if __name__ == '__main__':
-    doctest.testmod(optionflags=+doctest.ELLIPSIS)
-    # gs = GradeSheet()
-    # gs._dirForSave = 'f'
-    # gs.getFileCSV('E://volon/files/v.csv')
-    # gs.createDocs(gs._getDict())
+    import doctest
+
+    # doctest.testmod(optionflags=+doctest.ELLIPSIS)
+    gs = GradeSheet()
+    gs._dirForSave = 'f'
+    gs.getFileCSV('E://volon/files/v_origin.csv')
+    print(gs._getDict())
+    gs.createDocs(gs._getDict())
