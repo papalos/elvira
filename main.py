@@ -4,6 +4,7 @@ import docx
 import datetime
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Mm
+from fpdf import FPDF, HTMLMixin
 
 
 class GradeSheet():
@@ -53,11 +54,8 @@ class GradeSheet():
 
         return dict_person
 
-        # for i in dict_person:
-        #     for k in dict_person[i]:
-        #         print(i, k, dict_person[i][k])
 
-    def createDocs(self, dict_person):
+    def createDocs(self, dict_person, stamp, date_doc):
 
         for faculty in dict_person:
 
@@ -165,14 +163,14 @@ class GradeSheet():
 
             tableThree = doc.add_table(rows=2, cols=2)
             # Вставляем дату
-            d = datetime.date.today()
-            tableThree.cell(0, 0).add_paragraph(f'Дата заполнения {d.day}.{d.month}.{d.year}')
+            tableThree.cell(0, 0).add_paragraph(f'Дата заполнения: {date_doc}')
             tableThree.cell(0, 1).add_paragraph('Протасевич Т.А.').alignment = WD_ALIGN_PARAGRAPH.RIGHT
             # tableThree.cell(1, 0).text = 'Оценка по 10-балльной шкале'
-            tableThree.cell(1, 1).text = ''
-            stamp = tableThree.cell(1, 1).paragraphs[0]
-            stamp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            stamp.add_run().add_picture('stamp1.jpg')
+            if stamp:
+                tableThree.cell(1, 1).text = ''
+                stamp = tableThree.cell(1, 1).paragraphs[0]
+                stamp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                stamp.add_run().add_picture('stamp1.jpg')
 
             # путь сохранения файла
             path_save = faculty.replace('"', '').replace(':', '')
@@ -182,17 +180,29 @@ class GradeSheet():
             # сохраняем созданный документ
             doc.save(a)
 
-    def createPDF(self, dict_person):
-        pass
-
+    def createPDF(self):
+        # Дописать
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
+        pdf.add_font('DejaVu', 'B', 'DejaVuSansCondensed-Bold.ttf', uni=True)
+        pdf.set_font('DejaVu', 'B', 16)
+        pdf.cell(0, 10, 'ОЦЕНОЧНАЯ ВЕДОМОСТЬ ПО ПРОЕКТУ', 0, 1, 'C')
+        pdf.set_font('DejaVu', '', 12)
+        pdf.cell(0, 10, 'Волонтеры: олимпиадный марафон(название проекта)', 0, 1, 'C')
+        pdf.cell(0, 10, 'Сервисный проект (тип проекта)', 0, 1, 'C')
+        pdf.cell(0, 10, 'Январь – май (срок выполнения проекта)', 0, 1, 'C')
+        pdf.cell(80, 10, 'Заголовок', 1, 1, 'R')
+        pdf.output('simple_table_html.pdf', 'F')
 
 
 if __name__ == '__main__':
     import doctest
 
     # doctest.testmod(optionflags=+doctest.ELLIPSIS)
-    gs = GradeSheet()
-    gs._dirForSave = 'f'
-    gs.getFileCSV('E://volon/files/v_origin.csv')
-    print(gs._getDict())
-    gs.createDocs(gs._getDict())
+    # gs = GradeSheet()
+    # gs._dirForSave = 'f'
+    # gs.getFileCSV('E://volon/files/v_origin.csv')
+    # print(gs._getDict())
+    # gs.createDocs(gs._getDict())
+    # gs.createPDF()
