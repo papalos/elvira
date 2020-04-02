@@ -54,7 +54,6 @@ class GradeSheet():
 
         return dict_person
 
-
     def createDocs(self, dict_person, stamp, date_doc):
 
         for faculty in dict_person:
@@ -170,7 +169,7 @@ class GradeSheet():
                 tableThree.cell(1, 1).text = ''
                 stamp = tableThree.cell(1, 1).paragraphs[0]
                 stamp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                stamp.add_run().add_picture('stamp1.jpg')
+                stamp.add_run().add_picture('123.png')
 
             # путь сохранения файла
             path_save = faculty.replace('"', '').replace(':', '')
@@ -180,29 +179,104 @@ class GradeSheet():
             # сохраняем созданный документ
             doc.save(a)
 
-    def createPDF(self):
-        # Дописать
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
-        pdf.add_font('DejaVu', 'B', 'DejaVuSansCondensed-Bold.ttf', uni=True)
-        pdf.set_font('DejaVu', 'B', 16)
-        pdf.cell(0, 10, 'ОЦЕНОЧНАЯ ВЕДОМОСТЬ ПО ПРОЕКТУ', 0, 1, 'C')
-        pdf.set_font('DejaVu', '', 12)
-        pdf.cell(0, 10, 'Волонтеры: олимпиадный марафон(название проекта)', 0, 1, 'C')
-        pdf.cell(0, 10, 'Сервисный проект (тип проекта)', 0, 1, 'C')
-        pdf.cell(0, 10, 'Январь – май (срок выполнения проекта)', 0, 1, 'C')
-        pdf.cell(80, 10, 'Заголовок', 1, 1, 'R')
-        pdf.output('simple_table_html.pdf', 'F')
+    def createPDF(self, dict_person, stamp, date_doc):
+
+        for faculty in dict_person:
+
+            # формируем список с именами волонтеров
+            sort_person_list = [i for i in dict_person[faculty]]
+            # сортируем его
+            sort_person_list.sort()
+
+            # на основе отсортированного списка формируем новый словарь, с упорядоченным значением имен
+            sort_dict = {}
+            for name in sort_person_list:
+                sort_dict[name] = dict_person[faculty][name]
+
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
+            pdf.add_font('DejaVu', 'B', 'DejaVuSansCondensed-Bold.ttf', uni=True)
+            pdf.set_font('DejaVu', 'B', 16)
+            pdf.cell(0, 10, 'ОЦЕНОЧНАЯ ВЕДОМОСТЬ ПО ПРОЕКТУ', 0, 1, 'C')
+            pdf.set_font('DejaVu', '', 12)
+            pdf.cell(0, 10, 'Волонтеры: олимпиадный марафон(название проекта)', 0, 1, 'C')
+            pdf.cell(0, 10, 'Сервисный проект (тип проекта)', 0, 1, 'C')
+            pdf.cell(0, 10, 'Январь – май (срок выполнения проекта)', 0, 1, 'C')
+
+            # Таблица 1
+            pdf.cell(30, 10, '', 0, 0, 'C')
+            pdf.multi_cell(65, 7, 'Руководитель проекта:\nФИО \nДолжность\n\n', 1, 'L')
+            pdf.set_y(pdf.get_y() - 28)
+            pdf.set_x(pdf.get_x() + 65 + 30)
+            pdf.multi_cell(90, 7, 'Протасевич Тамара Анатольевна \nДиректор по профессиональной ориентации и работе с '
+                                  'одаренными учащимися', 1, 'L')
+            pdf.cell(30, 10, '', 0, 0, 'C')
+            pdf.multi_cell(65, 7, 'Образовательная программа\n\n\n', 1, 'L')
+            # устанавливаем позицию следующей мульти-ячейки
+            pdf.set_xy(pdf.get_x() + 65 + 30, pdf.get_y() - 7 * 3)
+            # расчет положения последней ячейки
+            f = faculty + '\n\n' if 40 <= len(faculty) < 80 else faculty + '\n\n\n' if len(faculty) < 40 else faculty
+            pdf.multi_cell(90, 7, f, 1, 'L')
+
+            pdf.ln(20)
+
+            # Таблица 2 заголовки
+            w_cell1 = 90
+            w_cell2 = 40
+            w_cell3 = 30
+            w_cell4 = 30
+            h_cell = 5 * 3
+            pdf.set_font('DejaVu', 'B', 12)
+            pdf.multi_cell(w_cell1, 5, '\nФИО\n\n', 1, 'C')
+            pdf.set_xy(pdf.get_x() + w_cell1, pdf.get_y() - h_cell)
+            pdf.multi_cell(w_cell2, 5, '\nКурс\n\n', 1, 'C')
+            pdf.set_xy(pdf.get_x() + w_cell1 + w_cell2, pdf.get_y() - h_cell)
+            pdf.multi_cell(w_cell3, 5, 'Оценка по 10-балльной шкале', 1, 'C')
+            pdf.set_xy(pdf.get_x() + w_cell1 + w_cell2 + w_cell3, pdf.get_y() - h_cell)
+            pdf.multi_cell(w_cell4, 5, 'Количество ЗЕ за проект', 1, 'C')
+
+            # Таблица 2 тело
+            pdf.set_font('DejaVu', '', 12)
+
+            # добавляем строки таблице и заполняем содержимым переданного словарая с волонтерами
+            for person in sort_dict:
+
+                pdf.cell(90, 5, person, 1, 0, 'L')
+                pdf.cell(40, 5, sort_dict[person][1], 1, 0, 'C')
+                pdf.cell(30, 5, '10', 1, 0, 'C')
+                grade = sort_dict[person][0]
+                if grade < 3:
+                    value = '1'
+                elif grade == 3:
+                    value = '2'
+                else:
+                    value = '3'
+                pdf.cell(30, 5, value, 1, 1, 'C')
+
+            pdf.ln(5)
+
+            # Вставляем дату
+            pdf.cell(100, 5, f'Дата заполнения: {date_doc}', 0, 0, 'L')
+            pdf.cell(90, 5, 'Протасевич Т.А.', 0, 1, 'R')
+
+            if stamp:
+                pdf.image('123.png', x=120, w=73, h=40.5)
+
+            # путь сохранения файла
+            path_save = faculty.replace('"', '').replace(':', '')
+            a = f'{self._dirForSave}/{path_save}.pdf'
+            # # сохраняем созданный документ
+            pdf.output(a)
 
 
 if __name__ == '__main__':
     import doctest
 
     # doctest.testmod(optionflags=+doctest.ELLIPSIS)
-    # gs = GradeSheet()
-    # gs._dirForSave = 'f'
-    # gs.getFileCSV('E://volon/files/v_origin.csv')
+    gs = GradeSheet()
+    gs._dirForSave = 'pdf'
+    gs.getFileCSV('E://volon/files/v_origin.csv')
     # print(gs._getDict())
     # gs.createDocs(gs._getDict())
-    # gs.createPDF()
+    gs.createPDF(gs._getDict(), True, '20.12.2020')

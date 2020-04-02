@@ -30,7 +30,11 @@ def create_sheets():
     gs.getFileCSV(file_path.get())
 
     if isPDF.get():
-        msg.set('Верстка в PDF еще не реализована!')
+        try:
+            gs.createPDF(gs._getDict(), isStamp.get(), date_doc.get())
+            msg.set('Формирование оценочных ведомостей завершено успешно!')
+        except:
+            msg.set('Возникла непредвиденная ошибка!')
     else:
         try:
             gs.createDocs(gs._getDict(), isStamp.get(), date_doc.get())
@@ -77,8 +81,6 @@ date_entry.grid(row=3, column=2)
 
 buttonB3 = Button(text="Сгенерировать ведомости", command=create_sheets)
 buttonB3.grid(row=4, column=1)
-
-
 
 msg = StringVar()
 
